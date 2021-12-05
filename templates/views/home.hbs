@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css"
+        integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+    <title>Document</title>
+</head>
+
+<body>
+    <!-- navbar -->
+    <nav class="navbar">
+        <div class="navbar-center">
+            <span class="nav-icon">
+                <i class="fas fa-bars"></i>
+            </span>
+            <img src="css/images/logo.png" style="height: 50px;" alt="store logo">
+            <div class="cart-btn">
+                <span class="nav-icon">
+                    <a class="btn btn-dark" href="/home" role="button">Home</a>
+                    <a class="btn btn-dark" href="/" role="button">Logout</a>
+                    <i class="fas fa-cart-plus"></i>
+                </span>
+                <div class="cart-items">0</div>
+            </div>
+        </div>
+    </nav>
+    <!-- end of navbar -->
+    <!-- header -->
+    <header class="hero">
+        <div class="banner">
+            <!-- product -->
+            <section class="products">
+                <div class="section-title">
+                    <h2>our products</h2>
+                </div>
+                <div class="products-center">
+            
+                </div>
+            </section>
+            <!-- end of product -->
+            <!-- cart -->
+            <div class="cart-overlay">
+                <div class="cart">
+                    <span class="close-cart">
+                        <i class="fas fa-window-close"></i>
+                    </span>
+                    <h2>your cart</h2>
+                    <div class="cart-content">
+                        <!-- cart item -->
+            
+                        <!-- end of cart item -->
+                    </div>
+                    <div class="cart-footer">
+                        <h3>your total : $ <span class="cart-total">0</span></h3>
+                        <button class="clear-cart banner-btn">clear cart</button>
+                    </div>
+                </div>
+            </div>
+            <!-- end of cart -->
+        </div>
+    </header>
+    <!-- end of header -->
+    
+
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/contentful@latest/dist/contentful.browser.min.js"></script>
+
+    <script>
+
+        const client = contentful.createClient({
+                // This is the space ID. A space is like a project folder in Contentful terms
+                space: "vt4lje1zapvu",
+                // This is the access token for this space. Normally you get both ID and the token in the Contentful web app
+                accessToken: "qM9kIapkGUriE15RxjD7ncLJz3KL6svKjV8eHmJjsCk"
+            });
+
+            const cartBtn = document.querySelector(".cart-btn");
+            const closeCartBtn = document.querySelector(".close-cart");
+            const cartClearBtn = document.querySelector(".clear-cart");
+            const cartDOM = document.querySelector(".cart");
+            const cartOverlay = document.querySelector(".cart-overlay");
+            const cartItems = document.querySelector(".cart-items");
+            const cartTotal = document.querySelector(".cart-total");
+            const cartContent = document.querySelector(".cart-content");
+            const productsDOM = document.querySelector(".products-center");
+
+            // cart item
+            let cart = [];
+            //buttons
+            let buttonsDOM = [];
+
+            // getting the products
+            class Products {
+                async getProducts() {
+                    try {
+
+                        const response = await client.getEntries({
+                            content_type: 'mobileCart'
+                        });
+
+
+                        //let result = await fetch('products.json');
+                        //let data = await result.json();
+                        let products = response.items;
+                        products = products.map(item => {
+                            const { title, price } = item.fields;
+                            const { id } = item.sys;
+                            const image = item.fields.image.fields.file.url;
+                            return { title, price, id, image };
+                        });
+                        return products;
+                    } catch (error) {
+                        console.log(error);
+                    }
+
+                }
+            }
+
+            //display the products
+            class UI {
+                displayProducts(products) {
+                    let result = '';
+                    products.forEach(product => {
+                        result += `
+            <!-- single product -->
+            <article class="product">
+                <div class="img-container">
+                    <img src=${product.image} alt="product" class="product-img">
+                    <button class="bag-btn" data-id=${product.id}>
+                        <i class="fas fa-shopping-cart"></i>
+                        add to cart
+                    </button>
+                </div>
+                <h3>${product.title}</h3>
+                <h4>$${product.price}</h4>
+            </article>
+            <!-- end of single product -->
+            `
+                    });
+                    productsDOM.innerHTML = result;
+
+                }
+                getBagButtons() {
+                    const buttons = [...document.querySelectorAll(".bag-btn")]; //making nodelist to array using [...]
+                    buttonsDOM = buttons;
+                    buttons.forEach(button => {
+                        let id = button.dataset.id;
+                        let inCart = cart.find(item => item.id === id);
+                        if (inCart) {
+                            button.innerHTML = "In Cart";
+                            button.disabled = true;
+                        }
+                        button.addEventListener("click", (event) => {
+                            event.target.innerText = "In Cart";
+                            event.target.disabled = true;
+                            //get product from products
+                            let cartItem = { ...Storage.getProduct(id), amount: 1 };
+
+                            //add product to the cart
+                            cart = [...cart, cartItem];
+
+                            //save cart in local storage
+                            Storage.saveCart(cart);
+
+                            //set cart values
+                            this.setCartValues(cart);
+
+                            //display cart item
+                            this.addCartItem(cartItem);
+
+                            //show the cart
+                            this.showCart();
+                        });
+
+                    });
+                }
+                setCartValues(cart) {
+                    let tempTotal = 0;
+                    let itemsTotal = 0;
+                    cart.map(item => {
+                        tempTotal += item.price * item.amount;
+                        itemsTotal += item.amount;
+                    });
+                    cartTotal.innerText = parseFloat(tempTotal.toFixed(2));
+                    cartItems.innerText = itemsTotal;
+                }
+                addCartItem(item) {
+                    const div = document.createElement('div');
+                    div.classList.add('cart-item');
+                    div.innerHTML = `<img src=${item.image} alt="product">
+                    <div>
+                        <h4>${item.title}</h4>
+                        <h5>$${item.price}</h5>
+                        <span class="remove-item" data-id=${item.id}>remove</span>
+                    </div>
+                    <div>
+                        <i class="fas fa-chevron-up" data-id=${item.id}></i>
+                        <p class="item-amount">${item.amount}</p>
+                        <i class="fas fa-chevron-down" data-id=${item.id}></i>
+                    </div>`
+                    cartContent.appendChild(div);
+
+                }
+
+                showCart() {
+                    cartOverlay.classList.add('transparentBcg');
+                    cartDOM.classList.add('showCart');
+                }
+
+                setupAPP() {
+                    cart = Storage.getCart();
+                    this.setCartValues(cart);
+                    this.populateCart(cart);
+                    cartBtn.addEventListener('click', this.showCart);
+                    closeCartBtn.addEventListener('click', this.hideCart);
+                }
+
+                populateCart(cart) {
+                    cart.forEach(item => this.addCartItem(item));
+
+                }
+
+                hideCart() {
+                    cartOverlay.classList.remove('transparentBcg');
+                    cartDOM.classList.remove('showCart');
+                }
+
+                cartLogic() {
+                    //clear cart button
+                    cartClearBtn.addEventListener('click', () => {
+                        this.clearCart();
+                    });
+                    //cart functionality
+                    cartContent.addEventListener('click', event => {
+                        if (event.target.classList.contains('remove-item')) {
+                            let removeItem = event.target;
+                            let id = removeItem.dataset.id;
+                            cartContent.removeChild(removeItem.parentElement.parentElement);
+                            this.removeItem(id);
+                        }
+                        else if (event.target.classList.contains('fa-chevron-up')) {
+                            let addAmount = event.target;
+                            let id = addAmount.dataset.id;
+                            let tempItem = cart.find(item => item.id === id);
+                            tempItem.amount = tempItem.amount + 1;
+                            Storage.saveCart(cart);
+                            this.setCartValues(cart);
+                            addAmount.nextElementSibling.innerText = tempItem.amount;
+                        }
+                        else if (event.target.classList.contains('fa-chevron-down')) {
+                            let lowAmount = event.target;
+                            let id = lowAmount.dataset.id;
+                            let tempItem = cart.find(item => item.id === id);
+                            tempItem.amount = tempItem.amount - 1;
+                            if (tempItem.amount > 0) {
+                                Storage.saveCart(cart);
+                                this.setCartValues(cart);
+                                lowAmount.previousElementSibling.innerText = tempItem.amount;
+                            }
+                            else {
+                                cartContent.removeChild(lowAmount.parentElement.parentElement);
+                                this.removeItem(id);
+                            }
+                        }
+                    });
+                }
+                clearCart() {
+                    let cartItems = cart.map(item => item.id);
+                    cartItems.forEach(id => this.removeItem(id));
+                    while (cartContent.children.length > 0) {
+                        cartContent.removeChild(cartContent.children[0]);
+                    }
+                    this.hideCart();
+                }
+                removeItem(id) {
+                    cart = cart.filter(item => item.id != id);
+                    this.setCartValues(cart);
+                    Storage.saveCart(cart);
+                    let button = this.getSingleButton(id);
+                    button.disabled = false;
+                    button.innerHTML = `<i class="fas fa-shopping-cart"></i>add to cart`;
+                }
+
+                getSingleButton(id) {
+                    return buttonsDOM.find(button => button.dataset.id === id);
+                }
+            }
+
+            //local storage
+            class Storage {
+                static saveProducts(products) {
+                    localStorage.setItem("products", JSON.stringify(products));
+                }
+                static getProduct(id) {
+                    let products = JSON.parse(localStorage.getItem('products'));
+                    return products.find(product => product.id === id);
+                }
+                static saveCart(cart) {
+                    localStorage.setItem('cart', JSON.stringify(cart));
+                }
+                static getCart() {
+                    return localStorage.getItem('cart') ? JSON.parse(localStorage.getItem('cart')) : [];
+                }
+            }
+
+            document.addEventListener("DOMContentLoaded", () => {
+                const ui = new UI();
+                const products = new Products();
+                //setup application
+                ui.setupAPP();
+
+                //get all products
+                products.getProducts().then(products => {
+                    ui.displayProducts(products)
+                    Storage.saveProducts(products);
+                }).then(() => {
+                    ui.getBagButtons();
+                    ui.cartLogic();
+                });
+            });
+        
+
+
+    </script>
+</body>
+
+</html>
