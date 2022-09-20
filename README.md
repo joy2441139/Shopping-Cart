@@ -2,7 +2,7 @@
 
 ### This project is about a shopping cart with login authentication using NodeJs, VanillaJS, ExpressJS and MongoDB. To run this project=>
 
-- Install all the dependencies using npm install packagename
+- Install all the dependencies using npm install
 - Create a .env file and make a SECRET_KEY there.
 - Then use this command: npm run start
 
