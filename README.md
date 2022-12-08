@@ -12,5 +12,5 @@
 - Admin can add new products
 - An user can signup and then signin to checkout any products
 - User can add products to the cart
-- Cart will automatically calculate the total ammount for the current User
+- Cart will automatically calculate the total amount for the current User
 - Cookies for Admin/User login
